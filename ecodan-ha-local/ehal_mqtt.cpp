@@ -127,22 +127,26 @@ off
         }
 
         float setTemperature = payload.toFloat();
-
+        // if current temp is already SetTemperature, then skip
+        // setting room target temperature
+        if (hp::get_status().Zone1SetTemperature == setTemperature)
+        {
+            log_web(F("Skipping Z1 room target temperature setting as current temp is same as set temp"));
+            return;
+        }
         if (!hp::set_z1_target_temperature(setTemperature))
         {
             log_web(F("Failed to set z1 target temperature!"));
         }
         else
         {
-            {
                 auto& status = hp::get_status();
                 std::lock_guard<hp::Status> lock{status};
                 status.Zone1SetTemperature = setTemperature;
-            }
-
-            // Ensure lock is released, because publish_climate_status will attempt
-            // to acquire it internally
-            publish_climate_status();
+                // Ensure lock is released, because publish_climate_status will attempt
+                // to acquire it internally
+                publish_climate_status();
+        
         }
     }
 
@@ -154,7 +158,22 @@ off
         }
 
         float setTemperature = payload.toFloat();
+        
+        // if current mode is room target temperature, then skip
+        // setting flow target temperature 
+        if (hp::get_status().HeatingCoolingMode == hp::Status::HpMode::HEAT_ROOM_TEMP)
+        {
+            return;
+            log_web(F("Skipping Z1 flow target temperature setting as current mode is room target temperature"));
 
+        } 
+        // if current temp is already SetTemperature, then skip
+        // setting flow target temperature
+        if (hp::get_status().Zone1FlowTemperatureSetPoint == setTemperature)
+        {
+            log_web(F("Skipping Z1 flow target temperature setting as current temp is same as set temp"));
+            return;
+        }
         if (!hp::set_z1_flow_target_temperature(setTemperature))
         {
             log_web(F("Failed to set Z1 flow target temperature!"));
@@ -177,6 +196,13 @@ off
         }
 
         float setTemperature = payload.toFloat();
+        // if current temp is already SetTemperature, then skip
+        // setting room target temperature
+        if (hp::get_status().Zone2SetTemperature == setTemperature)
+        {
+            log_web(F("Skipping Z2 room target temperature setting as current temp is same as set temp"));
+            return;
+        }
 
         if (!hp::set_z2_target_temperature(setTemperature))
         {
@@ -188,11 +214,13 @@ off
                 auto& status = hp::get_status();
                 std::lock_guard<hp::Status> lock{status};
                 status.Zone2SetTemperature = setTemperature;
+                // Ensure lock is released, because publish_z2_climate_status will attempt
+                // to acquire it internally
+                publish_z2_climate_status();
+            
             }
 
-            // Ensure lock is released, because publish_z2_climate_status will attempt
-            // to acquire it internally
-            publish_z2_climate_status();
+            
         }
     }
 
@@ -204,7 +232,20 @@ off
         }
 
         float setTemperature = payload.toFloat();
-
+        // if current mode is room target temperature, then skip
+        // setting flow target temperature
+        if (hp::get_status().HeatingCoolingMode == hp::Status::HpMode::HEAT_ROOM_TEMP)
+        {
+           log_web(F("Skipping Z2 flow target temperature setting as current mode is room target temperature"));
+           return;
+        } 
+        // if current temp is already SetTemperature, then skip
+        // setting flow target temperature
+        if (hp::get_status().Zone2FlowTemperatureSetPoint == setTemperature)
+        {
+            log_web(F("Skipping Z2 flow target temperature setting as current temp is same as set temp"));
+            return;
+        }
         if (!hp::set_z2_flow_target_temperature(setTemperature))
         {
             log_web(F("Failed to set Z2 flow target temperature!"));
@@ -214,7 +255,6 @@ off
             auto& status = hp::get_status();
             std::lock_guard<hp::Status> lock{status};
             status.Zone2FlowTemperatureSetPoint = setTemperature;
-
             publish_sensor_status<float>(F("z2_flow_temp_target"), setTemperature);
         }
     }
@@ -227,6 +267,13 @@ off
         }
 
         float setTemperature = payload.toFloat();
+        // if current temp is already SetTemperature, then skip
+        // setting Dhw target temperature
+        if (hp::get_status().DhwFlowTemperatureSetPoint == setTemperature)
+        {
+            log_web(F("Skipping DHW target temperature setting as current temp is same as set temp"));
+            return;
+        }
 
         if (!hp::set_dhw_target_temperature(setTemperature))
         {
@@ -236,9 +283,9 @@ off
         {
             auto& status = hp::get_status();
             std::lock_guard<hp::Status> lock{status};
-            status.Zone1SetTemperature = setTemperature;
-
+            status.DhwFlowTemperatureSetPoint = setTemperature;
             publish_sensor_status<float>(F("dhw_flow_temp_target"), setTemperature);
+         
         }
     }
 
@@ -318,9 +365,12 @@ off
         else
         {
             auto& status = hp::get_status();
+            if(status.DhwForcedActive != forced)
+            {
             std::lock_guard<hp::Status> lock{status};
             status.DhwForcedActive = forced;
             publish_binary_sensor_status(F("mode_dhw_forced"), forced);
+            }
         }
     }
 
