@@ -39,7 +39,28 @@ bool initialize_wifi_access_point()
                 ehal::log_web(F("Failed to configure hostname from saved settings!"));
             }
         }
-        WiFi.begin(config.WifiSsid.c_str(), config.WifiPassword.c_str());
+        // Scan for available networks, filter with config.WifiSsid
+        // and select the best BSSID to connect to by signal strength.
+        int8_t bestNetwork = -1;
+        int32_t bestRssi = -100;
+        ehal::log_web(F("Scanning Wifi network for configured SSID..."));
+        ehal::log_web(F("SSID: %s"), config.WifiSsid.c_str());
+        int8_t networks = WiFi.scanNetworks();
+        for (int8_t i = 0; i < networks; ++i)
+        {
+            if (WiFi.SSID(i) == config.WifiSsid)
+            {
+                ehal::log_web(F("Found BSSID : %s"), WiFi.BSSIDstr(i));
+                ehal::log_web(F("with RSSI : %d"), WiFi.RSSI(i));
+                if (WiFi.RSSI(i) > bestRssi)
+                {
+                    bestRssi = WiFi.RSSI(i);
+                    bestNetwork = i;
+                }
+            }
+        }
+        ehal::log_web(F("Connecting to best BSSID: %s"), WiFi.BSSIDstr(bestNetwork)); 
+        WiFi.begin(config.WifiSsid.c_str(), config.WifiPassword.c_str(),0,WiFi.BSSID(bestNetwork),true);
 
         // Give us 10 mins to re-establish a WiFi connection before we give up,
         // just in case there's a power cut and the router needs time to boot.
