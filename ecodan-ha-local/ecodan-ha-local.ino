@@ -183,7 +183,7 @@ void log_last_reset_reason()
             ehal::log_web(F("Reset (software or hardware) due to interrupt watchdog."));
             break;
         case ESP_RST_TASK_WDT:
-            ehal::log_web(F(" to task watchdog."));
+            ehal::log_web(F("Reset due to task watchdog."));
             break;
         case ESP_RST_WDT:
             ehal::log_web(F("Reset due to other watchdogs."));
